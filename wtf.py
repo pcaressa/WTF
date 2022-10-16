@@ -3,27 +3,32 @@
     (c) 2022 by Paolo Caressa <https://github.com/pcaressa>
 """
 
+
 import random
 random.seed(0)
 
 # Error handling (brutal)
 _ERRNO = 0
+
+def exit_on(cond, msg):
+    if cond:
+        if _NLINE > 0:
+            print(f"{_NAME}:{_NLINE}: WTF! ", end="")
+        elif _IP >= 0:
+            print(f"CODE_DUMP:{_IP-2}: WTF! ", end="")
+        print(msg, "sorry, this is a fatal error!")
+        exit(-1)
+
 def error_on(cond, msg):
     global _ERRNO
     if cond:
         if _NLINE > 0:
             print(f"{_NAME}:{_NLINE}: WTF! ", end="")
+        elif _IP >= 0:
+            print(f"CODE_DUMP:{_IP-2}: WTF! ", end="")
         print(msg)
         _ERRNO += 1
-        if _ERRNO > 100:
-            print("That makes 100 errors: I give up!")
-            exit(-1)
-def exit_on(cond, msg):
-    if cond:
-        if _NLINE > 0:
-            print(f"{_NAME}:{_NLINE}: WTF! ", end="")
-        print(msg, "sorry, this is a fatal error!")
-        exit(-1)
+        exit_on(_ERRNO >= 100, f"That makes {_ERRNO} errors: I give up!")
 
 # Builtin stacks
 _CSTK = []  # compiled code is pushed here
@@ -38,6 +43,7 @@ def push(stk, elem):
 def pop(stk):
     exit_on(len(stk) == 0, "Missing value (stack underflow)")
     return stk.pop()
+
 
 #       Compile time stuff
 
@@ -55,7 +61,7 @@ _CCODES[ord("[")] = -1
 _CCODES[ord("]")] = -1
 
 # Last character parsed, if any
-_CLAST = ""
+_CLAST = ''
 
 # Current source line under parsing (>= 1)
 _NLINE = 0
@@ -141,7 +147,7 @@ def compile_file():
 
 # Code execution
 
-_IP = 0     # index in _CSTK of the next instruction to execute
+_IP = -1    # index in _CSTK of the next instruction to execute
 
 def execute():
     """Execute the content of _CSTK that contains 2n elements,
@@ -489,8 +495,9 @@ def FGET(v):
         exit_on(True, "I/O error (reading a file)")
 def FPUT(v):
     try:
+        s = POP()
         f = POP()
-        f.write(chr(int(POP)))
+        f.write(str(s))
     except:
         exit_on(True, "I/O error (writing a file)")
 
