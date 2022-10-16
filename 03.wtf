@@ -1,0 +1,21 @@
+\ 03.wtf
+
+CMD print1 PRINT 1 END
+
+DEF x = 0
+
+PROC foo
+    DEF x = 0
+    FOR x = TO 10 DO
+        PRINT x
+    NEXT
+END
+
+foo 5       \ should print 5, 6, ..., 9
+foo(x - 5)  \ shoud print -5, -4, ..., 9
+
+FUNC incr 1 + END
+
+PRINT incr (10 + 20)    \ should print 31
+
+print1  \ This shall be executed before any compiled code
