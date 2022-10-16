@@ -1,0 +1,13 @@
+\ 01.wtf
+
+$PRINT "I should print: 81, 5, 5, 11, 1.25, 0, 1, -16, 10"
+PRINT ((1 + 2) * 3)\
+        ** 2
+PRINT 1 * (2 + 3)
+PRINT 1 * 2 + 3
+PRINT 1 + 2 * 3 + 4
+PRINT 1 / 2 + 3 / 4
+PRINT NOT 0 AND 0
+PRINT 0 = 0 OR 0 < 0 AND 1 <= 2
+PRINT NEG 2 ** 4
+PRINT ABS(10 - 20)
