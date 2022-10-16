@@ -1,0 +1,19 @@
+\ isort.wtf
+
+PROC sort
+    \ Insert sort
+    DEF list = \ Local parameter
+    DEF tmp = 0
+    DEF i = 0
+    DEF j = 0
+
+    FOR i = 1 TO LEN(list) DO
+        LET j = i
+        WHILE (IF j > 0 THEN list[j - 1] > list[j] ELSE 0 FI) DO
+            LET tmp = list[j]
+            j OF list = list[j - 1]
+            j - 1 OF list = tmp
+            LET j = j - 1
+        OD
+    NEXT
+END
