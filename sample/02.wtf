@@ -1,0 +1,8 @@
+FUNC fact
+    DEF x =
+    IF x <= 1 THEN 1
+    ELSE x * fact(x - 1)
+    FI
+END
+
+PRINT fact(10)
