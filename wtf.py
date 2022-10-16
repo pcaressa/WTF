@@ -1,22 +1,6 @@
 """
-    WTF2: Working version of WTF
-
-    Builtin words are (backslash means escape):
-
-    \n ( ) \" \\
-    ( ) + - * / ** NEG ABS RAND
-    = <> < >= > <= OR AND NOT
-    DEF NEW [ ] LET OF CMD PROC FUNC END
-    PUSH TOS POP LEN
-    IF THEN ELIF ELSE FI WHILE DO OD FOR TO NEXT
-    $PRINT PRINT
-
-
-    variabili locali nelle procedure e funzioni
-    private ... end per un blocco immediatamente compilato
-    include per includere altri sorgenti
-    fopen fclose fread fwrite fscan fprint per i file
-
+    WTF: Word Translation as in Forth
+    (c) 2022 by Paolo Caressa <https://github.com/pcaressa>
 """
 
 import random
@@ -55,7 +39,6 @@ def pop(stk):
     exit_on(len(stk) == 0, "Missing value (stack underflow)")
     return stk.pop()
 
-
 #       Compile time stuff
 
 # Lexical analyzer
@@ -72,7 +55,7 @@ _CCODES[ord("[")] = -1
 _CCODES[ord("]")] = -1
 
 # Last character parsed, if any
-_CLAST = ''
+_CLAST = ""
 
 # Current source line under parsing (>= 1)
 _NLINE = 0
