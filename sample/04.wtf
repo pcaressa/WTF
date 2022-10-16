@@ -1,0 +1,42 @@
+\ 04.wtf
+$PRINT "Should print 12.0"
+DEF x = 1
+DEF y = x + 2
+LET x = x + y
+LET y = x * y
+PRINT y
+
+$PRINT "Should print 10.0"
+LET x = 20
+IF x = 1 THEN
+    PRINT 1
+ELIF x = 2 THEN
+    PRINT 2
+ELIF x = 3 THEN
+    PRINT 2
+ELIF x >= 0 THEN
+    PRINT 10
+ELSE
+    PRINT -10
+FI
+
+$PRINT "Should print 20.0"
+PRINT (IF 1 <> 0 THEN 20 ELSE 30 FI)
+
+$PRINT "Should print 10.0, 9.0, ..., 0.0"
+LET x = 10
+WHILE x >= 0 DO
+    PRINT x
+    LET x = x - 1
+OD
+
+$PRINT "Now play with a stack"
+NEW s
+PUSH(s 10)
+s PUSH 20
+PRINT s[0]
+PRINT s[1]
+1 OF s = 40
+PRINT TOS(s)
+PRINT POP(s)
+PRINT POP(s)
