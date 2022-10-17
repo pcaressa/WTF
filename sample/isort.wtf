@@ -4,7 +4,6 @@ PROC sort
     \ Insert sort
     DEF list = \ Local parameter
     DEF tmp = 0
-    DEF i = 0
     DEF j = 0
 
     FOR i = 1 TO LEN(list) DO

@@ -2,7 +2,6 @@ INCLUDE isort.wtf
 
 STACK s
 
-DEF i = 0
 FOR i = 0 TO 100 DO
     s PUSH RAND
 NEXT

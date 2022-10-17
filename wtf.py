@@ -180,6 +180,19 @@ def CALL(v):
     push(_VSTK, _IP)
     _CSTK = v
     _IP = 0
+def CMD(v):
+    # same as CALL but invoked at compile time, therefore _IP == -1
+    # and _CSTK is under processing; therefore we save only _CSTK with
+    # a fake _IP == len(_CSTK) so that RET will set _IP to len(_CSTK)
+    # and execute() will terminate nicely.
+    global _IP, _CSTK
+    temp = _CSTK
+    push(_VSTK, v)
+    push(_VSTK, len(v))
+    _CSTK = v
+    execute()
+    _CSTK = temp
+    _IP = -1
 def RET(v):
     global _IP, _CSTK
     _IP = pop(_VSTK)
@@ -356,15 +369,14 @@ def BEGIN(p):   # BEGIN word ... END
     # a sentinel BEGIN expected by END
     push(_PSTK, _CSTK)
     _CSTK = []          # now code will be compiled here
-    insert_word(p, CALL, _CSTK)
+    insert_word(p, CMD if p == 0 else CALL, _CSTK)
     push(_PSTK, len(_DICT))
     push(_PSTK, BEGIN)  # END expects this
 def END(v):
     global _CSTK, _DICT
     compile_words(0)    # to be sure anything before END is compiled
     error_on(pop(_PSTK) != BEGIN, "'END' without 'BEGIN'")
-    push(_CSTK, RET)
-    push(_CSTK, 0)
+    compile(255, RET, 0)
     # deletes all definitions local to the ending one.
     d = pop(_PSTK)  # len(_DICT) when BEGIN was executed
     while len(_DICT) > d:
@@ -384,8 +396,7 @@ def THEN(v):
     error_on(pop(_PSTK) != IF, "'THEN' without 'IF'")
     # Compile expressions to _CSTK and next compile JP
     compile_words(1)
-    push(_CSTK, JPZ)
-    push(_CSTK, 1e20)   # changed later
+    compile(255, JPZ, 1e20) # 1e20 changed later
     # mark where the jumping "address" will be written
     push(_PSTK, len(_CSTK) - 1)
     push(_PSTK, THEN)   # ELSE and FI expect this
@@ -397,9 +408,8 @@ def ELSE(v):
     error_on(pop(_PSTK) != THEN, "'ELSE' without 'THEN'")
     # Compile expressions to _CSTK and next compile JP
     compile_words(1)
-    push(_CSTK, JP)
-    push(_CSTK, 1e20)   # changed later
-    i = pop(_PSTK)      # index where to write a jump address
+    compile(255, JP, 1e20)  # 1e20 changed later
+    i = pop(_PSTK)          # index where to write a jump address
     # mark where the jumping "address" will be written
     j = len(_CSTK) - 1
     push(_PSTK, j)
@@ -425,8 +435,7 @@ def DO(v):
     error_on(m != WHILE and m != FOR, "'DO' without 'WHILE' or 'FOR'")
     # Compile expressions to _CSTK and next compile JP
     compile_words(1)
-    push(_CSTK, JPZ)
-    push(_CSTK, 1e20)   # changed later
+    compile(255, JPZ, 1e20) # changed later
     # mark where the jumping "address" will be written
     push(_PSTK, len(_CSTK) - 1)
     push(_PSTK, DO)   # OD expects this
@@ -440,13 +449,12 @@ def OD(v):
     b = pop(_PSTK)
     a = pop(_PSTK)
     compile_words(5)
-    push(_CSTK, JP)
-    push(_CSTK, a)
+    compile(255, JP, a)
     _CSTK[b] = len(_CSTK)
 
 def FOR(v):     # FOR w = e1 TO e2 DO ... NEXT
-    i = compile_assignment(VSTORE)
-    push(_PSTK, _DICT[i+3]) # index of the control variable, needed later
+    DEF(0)
+    push(_PSTK, _DICT[-1]) # index of the control variable, needed later
     push(_PSTK, FOR)        # TO expects this
 def TO(v):      # TO expr DO
     compile_words(1)
@@ -615,9 +623,8 @@ if args.dump_vars:
     for i, x in enumerate(_VSTK):
         print(f"{i}: {x}")
 
-error_on(len(_DSTK) > 0, "Some error occurred, cross your fingers")
+error_on(len(_DSTK) > 0, "Some error occurred (stack mess)")
 error_on(len(_PSTK) > 0, "Control structures mismatches")
 
 if _ERRNO == 0:
     execute()
-

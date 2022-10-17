@@ -5,7 +5,6 @@ CMD print1 PRINT 1 END
 DEF x = 0
 
 PROC foo
-    DEF x = 0
     FOR x = TO 10 DO
         PRINT x
     NEXT

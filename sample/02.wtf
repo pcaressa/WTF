@@ -5,4 +5,6 @@ FUNC fact
     FI
 END
 
-PRINT fact(10)
+FOR x = 1 TO 11 DO
+    PRINT fact(x)
+NEXT
