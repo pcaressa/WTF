@@ -144,6 +144,8 @@ def compile_file():
             except ValueError:
                 error_on(True, f"Unknown word {w}")
     compile_words(0)
+    _NLINE = 0
+
 
 # Code execution
 
@@ -158,6 +160,7 @@ def execute():
     while _IP < len(_CSTK):
         _IP += 2
         _CSTK[_IP-2](_CSTK[_IP-1])
+    _IP = -1
 
 #       Run time stuff
 
@@ -592,9 +595,7 @@ args = parser.parse_args()
 _NAME = args.source
 with open(_NAME) as f:
     _SRC = f
-    _NLINE = 1
     compile_file()
-    _NLINE = 0
 
 if args.dump_obj:
     print()
@@ -614,8 +615,9 @@ if args.dump_vars:
     for i, x in enumerate(_VSTK):
         print(f"{i}: {x}")
 
+error_on(len(_DSTK) > 0, "Some error occurred, cross your fingers")
+error_on(len(_PSTK) > 0, "Control structures mismatches")
+
 if _ERRNO == 0:
-    error_on(len(_DSTK) > 0, "Some error occurred, cross your fingers")
-    error_on(len(_PSTK) > 0, "Control structures mismatches")
     execute()
 
