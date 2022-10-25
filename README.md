@@ -1,30 +1,38 @@
-# WTF: Word Translation as in Forth
+# WTF
 
-#### (c) 2022 by Paolo Caressa
+## Word Translation as in Forth
+
+### Paolo Caressa
+
+#### v 1.0, Oct 2022
 
 ## Introduction
 
-WTF means *Word Translation as in Forth* (at least in this document): indeed, WTF draws inspiration from the classic Forth language, described by its creator Charles Moore in an unpublished book available online [Programming a Problem Oriented Language](http://forth.org/POL.pdf): if you still haven't read this book then stop reading me and follow the link! The simplicity, elegance and versatility of Forth are the ideal target of WTF, whose design draws inspiration from Moore's book to provide:
+WTF (at least in this document) means *Word Translation as in Forth*: indeed, WTF draws inspiration from the classic Forth language, essentially described by its creator Charles Moore in an unpublished book available online [Programming a Problem Oriented Language](http://forth.org/POL.pdf): if you still haven't read this book then stop reading me and follow the link! The simplicity, elegance and versatility of Forth are the ideal target of WTF, whose design draws inspiration from Moore's book to provide:
 
-- A procedural language with an Algol-like syntax but actually in postfixed Polish form.
-- A compiler that, up to a bootstrap and efficiency considerations, could be entirely written in the language itself.
+- A procedural language with an Algol-like syntax.
+- A compiler that, up to a bootstrap and efficiency considerations, could be written in the language itself.
 - An interpreter without opcodes but with indirect calls to machine code routines.
 - Last, but not least, leisure and fun to its author.
 
-The only data structure we will use to implement all that is the stack: stacks were invented by Alan Turing in 1946 to program subroutines and in 1957 Klaus Samelson and Friedrich Bauer, unaware of Turing contribution, filed a patent for it. In the 60s, stack-based interpreters for the Algol-60 language emerged (E.W. Dijkstra) and in 1971 Niklaus Wirth programmed the first Pascal compiler translating to a byte-code for a stack VM. In the same year Moore finished his book, containing ideas developed in the 60s and exerting a great influence in the 1970s/1980s. From 1990s on, most languages used stack virtual machine as byte-code: Java, C\#, Python etc.
+The only data structure I'll use to implement that is the stack: stacks were invented by Alan Turing in 1946 report [Proposals for Development in the Mathematics Division of an Automatic Computing Engine](https://en.wikisource.org/wiki/Proposed_Electronic_Calculator) to handle subroutines calls even if, in 1957, Klaus Samelson and Friedrich Bauer, unaware of Turing contribution, filed a patent for it. In the 60s, stack-based interpreters for the Algol-60 language emerged (see E.W. Dijkstra [A simple mechanism modelling some features of Algol 60](https://archive.computerhistory.org/resources/text/algol/ACM_Algol_bulletin/1060960/p14-dijkstra.pdf) and in 1971 Niklaus Wirth programmed the first Pascal compiler translating to a byte-code for a stack VM (see e.g. [Pascal-S: A Subbet and its Implementation](https://sysovl.info/pages/blobs/ethz/Wirth-PascalS.pdf)). In the same year Moore finished his book, containing ideas developed in the 60s and exerting a great influence in the 1970s/1980s. From 1990s on, most languages used stack virtual machine as byte-code: Java, C\#, Python etc.
 
-WTF current implementation is written in a simple minded but easy-to-port non idiomatic Python. The program `wtf.py` is an interpreter that compiles a source file into an inner threaded code which is then executed. The program was coded to provide a practical explanation of Moore ideas as I presented them at the Milan 2022 Codemotion Conference [slides here](doc/Codemotion2022.pdf). However, this is just an imperfect version of what I have in mind: the next steps will be to engine a core language and to provide means to write all WTF language extensions in WTF itself. It'll be probably written in C.
+WTF current implementation is written in a simple minded but easy-to-port non idiomatic Python. The program `wtf.py` is an interpreter that compiles a source file into an inner threaded code which is then executed. Use it as
+
+```bash
+    $ python wtf.py source
+```
+
+The program was coded to provide a practical explanation of Moore ideas I presented at the Milan 2022 Codemotion Conference [slides here](doc/Codemotion2022.pdf). However, this is just an imperfect version of what I have in mind: the next steps will be to engine a core language and to provide means to write all WTF language extensions in WTF itself. It'll be probably written in C.
 
 Enjoy,  
 Paolo
 
 ---
 
-## 1. WTF AS A VIRTUAL MACHINE
+## 1. Interpreters and virtual machines
 
-WTF main idea is to provide an interpreted language that makes the interpretation mechanism transparent: this is an elegant and classic idea, introduced by John Mac Carthy with Lisp in the late 50s, explored by Edsger Dijkstra for the Algol language in the early 60s and brought to its maximum level of realization by Charles Moore with Forth in the late 60s.
-
-Briefly speaking it is about this: an interpreted language translates the source code into a bytecode, that is, a sequence of numerical codes that represent operations and sometimes their operands, which is executed by a virtual machine. In a real processor, the bytecode is the object code formed by machine language instructions, which usually have different shapes and a more or less complicated structure depending on the architecture of the processor.
+Briefly speaking: an interpreted language translates the source code into a bytecode, that is, a sequence of numerical codes that represent operations and sometimes their operands, which is executed by a virtual machine. In a real processor, the bytecode is the object code formed by machine language instructions, which usually have different shapes and a more or less complicated structure depending on the architecture of the processor.
 
 A virtual machine emulates a processor, typically for reasons of portability or ease of implementation, and therefore its bytecode is not machine code for a CPU but a sequence of codes that the virtual machine executes by scanning them one by one from a portion of memory.
 
@@ -160,7 +168,7 @@ This higher level of generality is paid for at the price of a greater complexity
 
 ---
 
-## 2. WTF AS BOTH A COMPILER AND AN INTERPRETER
+## 2. WTF as both a compiler and an interpreter
 
 The virtual machine we just sketched is the analogue of a CPU and its language analogous to the machine language: but in addition to this, WTF offers a high-level language that is compiled into the code of this machine. The point is that the compiled code corresponds to the source code transparently, in the sense that the compilation takes place using the same tools as the virtual machine.
 
@@ -329,8 +337,8 @@ After a source file has been compiled as described, `_CSTK` contains a sequence 
 ```Python
 _IP = 0
 while _IP < len(_CSTK):
-  _IP += 2
-  _CSTK[_IP-2](_CSTK[_IP-1])
+    _IP += 2
+    _CSTK[_IP-2](_CSTK[_IP-1])
 _IP = -1
 ```
 
@@ -404,14 +412,12 @@ To begin with let us introduce a set of words to handle algebraic expressions in
 |    255   | any number         |
 
 
-Notice that the parentheses, which are also special characters, have priority 0: this means that they are not compiled but rather do something during compiling.
-
-Namely, since they alter the priority of compilation, making all stuff enclosed between them with highest priority, they do the following:
+Notice that the parentheses, which are also special characters, have priority 0: this means that they are not compiled but rather they do something during compiling. Namely, since they alter the priority of compilation, making all stuff enclosed between them with highest priority, they do the following:
 
 - `(` pushes on `_DSTK` a fake word `(0, NIL, NIL)` which has priority 0 (no compiled word has it!).
 - `)` pops items from `_DSTK` and compiles them on `_CSTK` until the fake element `(0, NIL, NIL)` is found (and removed).
 
-Since `_DSTK` is a stack, parentheses nesting is guaranteed to work the expected way!
+Since `_DSTK` is a stack, parentheses nesting is guaranteed to work in the expected way!
 
 Notice also that the minus sign is reserved for difference, so that the negation of a number needs a different symbol, we choose `NEG` so that `NEG x` is the same as `0 - x`.
 
@@ -422,355 +428,232 @@ We also add two more special characters, the newline and the backslash, with pri
 - `COMMENT` which scans each character until the next newline: its effect is to ignore all text on the right of the backslash, we use it for comments or to continue an expression to the following line.
 - `NEWLINE` which pops everything on the `_DSTK` into the `_CSTK`, so that with the end of the line all "suspended" words waiting to be compiled will be. In this way, grosso modo a statement is contained in a single line: to continue it on the next, use the backslash.
 
-### 3.2. Variables
+### 3.2. Remarks on the (lack of) syntax
+
+Let me make an important remark: WFT trades simplicity for ambiguity. By that I mean that words in a WTF program are aware only of themselves: this is different from most languages in which a token may have different semantics according to the context. For example the minus sign may represent the negation or the subtraction: to see which is which, one should know if, say, the minus is between two operands or just before only one, to decide how to translate it.
+
+One could introduce a WTF device to accomplish that, by means of a state: for example, each word could set or reset a flag whether it gives rise to an operand or not, so that the minus word could check it, at compile time, and compile the appropriated code for negation or minus. But this would have impact on all words.
+
+The general rules upon which WTF design relies are:
+
+- Keep the compiler simple.
+- Keep words independents.
+- Avoid states if possible.
+
+Therefore we stick to this annoying `NEG` operator for the unary minus.
+
+Another interesting remark is the following one: since the actual order of compilation for a word is dictated by its priority, we can use for algebraic operators either the infix notation, either the postfix or the prefix one.
+
+For example the following three lines will both print 9:
+
+```
+    PRINT (1 + 2) * 3
+    (PRINT (* (+ 1 2) 3))
+    (1 2 +) 3 * PRINT
+```
+
+The first one is the "Fortran-like", the second one the "Lisp-like" and the third one the "Forth-like": so, you can write WTF you want. Since words are reordered according to priorities (but beware that constants are immediately compiled!) the syntax of WTF algebraic expressions, and more, is a matter of taste.
 
 
-Until now, the only way to modify the dictionary is add some Python code to our program: let us remedy by introducing words to define variables.
+### 3.3. Variables
 
-\medbreak
-We will store che value of variables inside a new stack `_VSTK`, whose elements are addressed by word values (thus the value of a word containing a variable will be an index to `_VSTK`.
+Until now, the only way to add new words to the dictionary is to modify the WTF interpreter: let us remedy by introducing words to define variables. I won't provide the most general way to do that, perhaps in future WTF versions. We will store che value of variables inside a new stack `_VSTK`, whose elements are addressed by word values (thus the value of a word containing a variable will be an index to `_VSTK`. Namely, each variable's value will have a unique "address" (an index) *i* such that the value of the variable is `_VLIST[i]`. Such a value may be a number, a stack (in the Python implementation a list) or even a string.
 
-\medbreak
-We provide two kind of variables: simple variables (containing a number/address) and stacks.
+Also, we'll need some runtime routine to fetch and store data inside this stack:
 
-\end{frame}
+- `VPUSH(i)` which pushes on `_DSTK` the content of the variable of index *i* in `_VLIST`.
+- `VSTORE(i)` which pops a value *v* from `_DSTK` and sets the *i*-th element of `_VLIST` to *v*.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Fetching and storing a variable's value}
+To define and initialize a variable use the word `DEF`, which does the following:
 
-The following runtime routines will be used by words defining and assigning variables.
+- At compile time:
+    - Push 0 on `_VSTK` and get the address *i* of it.
+    - Scan a word *w* and insert a definition (*w*, 255, `VPUSH`, *i*) on `_DICT`.
+    - Scan a word raising an error if is not `=`.
+    - Compile the instruction `VSTORE(i)` with priority 50, thus pushes (50, `VSTORE`, *i*) on `_DSTK`.
+- Runtime effects:
+    - Pop the result of the evaluation of the expression following `=` and store it at `_VSTK[i]`.
 
-\medbreak
+For example the sequence `DEF x = 1` performs the following at compiling time:
 
-\begin{lstlisting}
-_VSTK = []
+- The `DEF` word is executed and does the following
+    - Pushes 0 on `_VSTK`.
+    - Parses the word "x".
+    - Creates an entry ("x", 255, `VPUSH`, `len(_VSTK)-1`).
+    - Pushes (50, `VSTORE`, *i*) on `_DSTK`.
+    - Parses the word "=".
+- The `1` word immediately pushes `(PUSH,1)`on `_CSTK`.
 
-def VPUSH(v):
-    push(_DSTK, _VSTK[v])
+Finally all words from `_DSTK` are pushed on `_CSTK` so that the latter results in `[(PUSH,1) (VSTORE,i)]`. So, the variable is defined during compiling, and its value is initialized at run time.
 
-def VSTORE(v):
-    global _VSTK
-    _VSTK[v] = POP()
-\end{lstlisting}
-\end{frame}
+Notice that a variable may be defined time and again: being both the dictionary `_DICT` and `_VSTK` stacks, a new definition shadows but not deletes the previous ones: this feature will be useful for local variables.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{`DEF` name `=` value}
+To modify an existing variable to a new value use the word `LET` which has priority 0 and does the following.
 
-At compile time:
-\begin{enumerate}
-    \item Pushes 0 on `_VSTK` and get the address *i* of it.
-    \item Scan a word *w* and insert a definition (*w*, 255, `VPUSH`, *i*) on `_DICT`.
-    \item Scan the `=` raising an error if not found
-\end{enumerate}
+- At compiling time
+    - Scan a word *w* and looks for it inside the dictionary.
+    - If *w* is not found an error is raised.
+    - Scan a word raising an error if is not `=`.
+    - Compile the instruction `VSTORE(i)` with priority 50, thus pushes (50, `VSTORE`, *i*) on `_DSTK`.
+- Runtime effects:
+    - Pop the result of the evaluation of the expression following `=` and store it at `_VSTK[i]`.
 
-At runtime:
-\begin{enumerate}
-    \item Push the address *i* of the variable on the stack (`VPUSH` does that).
-    \item Push the result of the evaluation of the expression following `=` and store it at the location in `_VSTK` whose address was pushed at item 1.
-\end{enumerate}
+For example the following sequence of instructions
 
-\end{frame}
+```
+    DEF x = 1
+    LET x = x + 1
+    PRINT x
+    LET x = x * 2
+    PRINT x
+```
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Easier to express it in Python}
-\begin{lstlisting}
-_VSTK = []
+will print 2 and 4.
 
-def insert_word(p, r, v):
-    compile_words(1)    # compile everything before definition
-    w = scan_word()
-    push(_DICT, w)
-    push(_DICT, p)
-    push(_DICT, r)
-    push(_DICT, v)
+You could be annoyed by the fact that we need the keyword `LET` before the actual assignment, but to do otherwise would mean to complicate things quite enough.
 
-def DEF(v):     # DEF word = ...
-    i = len(_VSTK)      # index of the item to allocate
-    push(_VSTK, 0.0)    # allocate item
-    insert_word(255, VPUSH, i)
-    error_on(scan_word() != "=", "'=' expected")
-    compile(50, VSTORE, i)
+For example, we could introduce a state variable `_STATE` such that the system is by default in the state 0 in which, say, mentioning variables means to push their *address* on the stack, while after the `=` sign th esystem would enter in a state in which mentioning variables means to push their value on the stack; next we would define a word to restore the 0 state, say ";". For example we could write `x = x + 1 ;` so that the `x` on the left of `=`, in the 0 state, pushes the address of `x`, the `=` word compiles a `VSTORE1` routine which pops a value and an address from the stack and stores the value at the address; moreover the word `=` would set `_STATE` to 1 so that the next parsed `x` would result in compiling `VPUSH`, while the ending `;` would reset `_STATE` to 0.
 
-_DICT.extend(["DEF", 0, DEF, None])
-\end{lstlisting}
-\end{frame}
+The same state change should occur elsewhere, wherever the value of a variable needs to be retrieved and not its value to be changed.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{`LET` name `=` value}
+States are not a bad idea in themselves, but they introduce complexity and the temptation to use a same word with different meaning in different states; to do all that just not to write `LET` seems excessive to me: as Alan Perlis remarked, *syntactic sugar causes cancer of the semicolon*.
 
-To change a variable we need its address (mentioning it we get its value), so we use the priority 0 word `LET`.
+Variables defined by means of `DEF` can contain a memory cell value, thus a floating point number or an address: for example we can store strings into variables, by means of a curios word, the double quote, which is a special character: it does the following.
 
-At compile time:
-\begin{enumerate}
-    \item Scan the word following it and check that its definition is stored in `_DICT` (error otherwise).
-    \item Scan the `=` raising an error if not found
-\end{enumerate}
+- At compiling time:
+    - Scans characters until the next double quote is found and stores them into a buffer, returning its address a.
+    - If no double quote follows the opeining one, a *End of file inside string* error is raised and execution is stopped.
+    - Compiles `PUSH`(a).
+-  At runtime:
+    - The address of the string is pushed on the stack
 
-At runtime:
-\begin{enumerate}
-    \item Push the address of the variable on the stack (`VPUSH` does that).
-    \item Push the result of the evaluation of the expression following `=` and store it at the location in `_VSTK` whose address was pushed at item 1.
-\end{enumerate}
+In this toy WTF Python implementation we may take advantage of the fact that operators are overloaded to manipulate strings. For example the following shall work:
 
-\end{frame}
+```
+    DEF s1 = "alpha"
+    DEF s2 = "numerical"
+    PRINT s1 + s2   \ This prints "alphanumerical"
+    LET s1 = "semi"
+    PRINT s1 + s2   \ This prints "seminumerical"
+```
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Implementing assignments}
-\begin{lstlisting}
-def compile_assignment(r):
-    w = scan_word()
-    i = find_word(w)
-    if i < 0 or _DICT[i + 2] != VPUSH:
-        error_on(True, f"Unknown variable {w}")
-    else:
-        error_on(scan_word() != "=", "'=' expected")
-        compile(50, r, _DICT[i+3])
-    return i
+However this is more a bug than a feature: future versions of the language will provide specific words for string manipulation.
 
-_DICT.extend(["LET", 0, compile_assignment, VSTORE])
-\end{lstlisting}
-\end{frame}
+Atomic variables aside, WTF provides just one structured data type, of course the stack one. To define a new stack variable use the `STACK` declaration, which allocates a new empty stack and assigns it to a new variable.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{`STACK` name}
+The `STACK` word:
 
-Stacks are variables which contains neither numbers nor addresses but stacks: to keep things simple we use a different word to defined them, `STACK`.
+- At compile time:
+    - Pushes `[]` on `_VSTK` and get the address *i* of it.
+    - Scan a word *w* and insert a definition (*w*, 255, `VPUSH`, *i*) on `_DICT`.
+- At runtime: it does nothing!
 
-At compile time:
-\begin{enumerate}
-    \item Pushes `[]` on `_VSTK` and get the address *i* of it.
-    \item Scan a word *w* and insert a definition (*w*, 255, `VPUSH`, *i*) on `_DICT`.
-\end{enumerate}
+To handle a stack one needs just two words, one to push and the other to pop data: WTF provides
 
-At runtime: it does nothing!
-\end{frame}
+- `POP`, a word with priority 200 which pops the topmost element of a stack and returns it on the `_DSTK`: if the stack is empty an error is raised.
+- `PUSH`, a word with priority 10 which accepts two parameters, taking the first as a stack and the second as an element to push on that stack.
+- `TOS` which acts like `POP` but does not remove the top from the stack.
+- `LEN`, a word with priority 200, which returns the number of elements in a stack (0 if the stack is empty)
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Easier to express it in Python}
-\begin{lstlisting}
-def STACK(v):
-    i = len(_VSTK)      # index of the item to allocate
-    push(_VSTK, [])     # allocate empty stack
-    insert_word(255, VPUSH, i)
+For example:
 
-_DICT.append(["STACK", 0, STACK, None])
-\end{lstlisting}
-\end{frame}
+```
+    STACK s         \ At start s = []
+    PUSH(s 1)       \ Now s = [1]
+    s PUSH 2        \ Now s = [1 2]
+    (PUSH s 3)      \ Now s = [1 2 3]
+    s 4 PUSH        \ Now s = [1 2 3 4]
+    PRINT s         \ Nice to have: it prints the stack
+    PRINT TOS s     \ Prints 4
+    PRINT LEN s     \ Prints 4
+```
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Modifying stacks}
+However WTF allows to use stacks as lists: to get the $i$-th element of a stack (where the bottomest element has index 0) use the classical notation *s*`[`*i*`]`, for example:
 
-It's easy to implement words `POP`, `PUSH` and `TOS` (top of stack: retrieve the topmost element without popping it) and also the classical notation *s*`[`*i*`]` to get the value of the *i*-th element of a stack.
+```
+    STACK s
+    PUSH s 1 PUSH s 2 PUSH s 3 PUSH s 4
+    PRINT s[LEN(s) - 1]     \ Prints 4
+    PRINT s[NEG 1]          \ Prints 4
+    PRINT s[0]              \ Prints 1
+```
 
-\medbreak
-We do that via two character-words `[` and `]` that use a device similar to `(` and `)`.
+Notice that brackets are special characters just as parentheses. Notice also that negative indexes are added to `LEN s` so we have the same effect as in Python.
 
-\medbreak
-However, to assign an element we need to invent a different notation (otherwise we could introduce states to discriminate the syntactic context of a l-value from a r-value etc. but: BASIC principle!) which is *index* `OF` *stack* `=` *value*.
+To change an element of a stack we cannot use this same notation, unless we introduce states, so we stick to the classical Algol-68 notation by means of the `OF` word, which is used as *index* `OF` *stack* `=` *value*.
 
-\end{frame}
+`OF` has priority 0, parses the word following it, expects it to be a stack variable and parses the `=` following it. Next it compiles a subroutines which pops from the stack the index, the value to assign and stores the latter inside the appropriate element of the stack.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Stack variables handling}
-\begin{lstlisting}
-def SPUSH(v):   # PUSH(s v)
-    v = POP()
-    s = POP()
-    push(s, v)
-def SPOP(v):   # POP(s)
-    s = POP()
-    PUSH(pop(s))
-def STOS(v):   # TOS(s)
-    s = POP()
-    exit_on(len(s) == 0, "Missing data (stack underflow)")
-    PUSH(s[-1])
-def SLEN(v):    # LEN(s)
-    s = POP()
-    PUSH(len(s))
+Example:
 
-_DICT.extend(["PUSH", 10, SPUSH, None,
-              "POP", 200, SPOP, None,
-              "TOS", 200, STOS, None,
-              "LEN", 200, SLEN. None])
-\end{lstlisting}
-\end{frame}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Fetch and store items: easy, too}
-\begin{lstlisting}
-def IPUSH(v):
-    i = int(POP())
-    s = POP()
-    exit_on(i < -len(s) or i >= len(s), "Index out of range")
-    PUSH(s[i])
-
-def ISTORE(v):
-    global _VSTK
-    e = POP()
-    i = int(POP())
-    exit_on(i < -len(_VSTK[v]) or i >= len(_VSTK[v]), "Index out of range")
-    _VSTK[v][i] = e
-
-def CLOSEBRA(r):
-    close_par(r)
-    compile(255, IPUSH, None)
-
-_DICT.extend(["[", 0, open_par, "]",
-              "]", 0, CLOSEBRA, "]",
-              "OF", 0, compile_assignment, ISTORE])
-\end{lstlisting}
-\end{frame}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Example}
-
-\begin{lstlisting}
-DEF i = 0
-STACK s
-PUSH(s 1)       \ Now s = [1]
-s PUSH 2        \ Now s = [1 2]
-PUSH s 3        \ Now s = [1 2 3]
-PRINT s[1]      \ Print 2
-1 OF s = 10     \ Now s = [1 10 3]
-PRINT s[1]      \ Print 10
-PRINT s         \ Nice to have: it prints the stack
-\end{lstlisting}
+```
+    DEF i = 0
+    STACK s
+    PUSH(s 1) PUSH(s 2) PUSH(s 3)
+    PRINT s[1]      \ Print 2
+    1 OF s = 10     \ Now s = [1 10 3]
+    PRINT s[1]      \ Print 10
+```
 
 To provide meaningful examples we need control structures such as `if`, `while` and `for` of other languages. Let's add them.
 
-\end{frame}
+### 3.4. Control structures
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Control structures}
+Once pairs *(r,v)* have been compiled in the `_CSTK` the latter is be executed by means of the following function:
 
-By defining routines that mess with the `_IP` during execution we can easily implement control structures, as words which are executed during compilation and that compile jumps etc. writing jump addresses after the jump instruction has been compiled.
+```Python
+_IP = -1    # index in _CSTK of next instruction to execute
 
-\medbreak
-We need just two runtime jump instructions:
-
-\smallbreak
-
-\begin{lstlisting}
-def JP(v):
+def execute():
     global _IP
-    _IP = v
-    
-def JPZ(v):
-    global _IP
-    if POP() == 0:
-        _IP = v
-\end{lstlisting}
+    _IP = 0
+    while _IP < len(_CSTK):
+        _IP += 2
+        _CSTK[_IP-2](_CSTK[_IP-1])
+    _IP = -1
+```
 
-\end{frame}
+The `_IP` global variable contains the index of the next pair *(r,v)* to execute: by defining routines that mess with the `_IP` during execution we can easily implement control structures, as words which are executed during compilation and that compile jumps etc. writing jump addresses after the jump instruction has been compiled.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{WTF conditional}
+Let us consider conditionals first: we borrow from Algol-68 the following conditional structure:
 
-\begin{multicols}{2}
-\tt
-\qquad IF *e*\\
-\qquad THEN\\
-\qquad \quad    *s*\\
-\qquad ELIF *e_1*\\
-\qquad THEN\\
-\qquad \quad    *s_1*\\
-\qquad ...\\
-\qquad ELIF *e_n*\\
-\qquad THEN\\
-\qquad \quad    *s_n*\\
-\qquad ElSE\\
-\qquad \quad    *t*\\
-\qquad FI
+```
+    IF e THEN s
+    ELIF e_1 THEN s_1
+    ...
+    ELIF e_n THEN s_n
+    ELSE t
+    FI
+    ...
+```
 
-\columnbreak
-\small
-    *i_0*\ \ \ \ *e* \\
-    *i_1*\ \ \ \ `JPZ(*i_2+2*)` \\
-    *i_1+2*\ *s* \\
-    *i_2*\ \ \ \ `JP(*i_8*)` \\
-    *i_2+2*\ *e_1* \\
-    *i_3*\ \ \ \ `JPZ(*i_4+2*)` \\
-    *i_3+2*\ *s_1* \\
-    *i_4*\ \ \ \ `JP(*i_8*)` \\
-    *i_4+2*\  ... \\
-    *i_5*\ \ \ \ *e_n* \\
-    *i_6*\ \ \ \ `JPZ(*i_7+2*)` \\
-    *i_6+2*\ *s_n* \\
-    *i_7*\ \ \ \ `JP(*i_8*)` \\
-    *i_7+2*\ *t* \\
-    *i_8*\ \ \ \ ...
-\end{multicols}
+No need to explain it: maybe it is of some interest how it can be compiled. Each word `IF THEN ELIF ELSE FI` has priority 0, this it is executed at compiling time, and it communicates with other words, that cannot be avoided, by means of a stack `_PSTK`(I do not remember anymore what the *P* stands for).
 
-\end{frame}
+The compiled code resulting from the previous snippet should go as follows (labels on the left are indexes to `_CSTK`)
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Conditional implementation}
-The `_PSTK` stack contains the indexes in `_CSTK` where to store the jump addresses, that `ELSE` and `FI` will write: we need another stack not to mess `_DSTK` which is used to handle word priorities.
+```
+    i_0:    e
+    i_1:    JPZ(i_2+2)  \ Compiled by THEN
+    i_1+2:  s
+    i_2:    JP(i_8)     \ Compiled by ELIF
+    i_2+2:  e_1
+    i_3:    JPZ(i_4+2)  \ Compiled by THEN
+    i_3+2:  s_1
+    i_4:    JP(i_8)     \ Compiled by ELIF
+    i_4+2:  ...
+    i_5:    e_n
+    i_6:    JPZ(i_7+2)  \ Compiled by THEN
+    i_6+2:  s_n
+    i_7:    JP(i_8)     \ Compiled by ELSE
+    i_7+2:  t
+    i_8     ...
+```
 
-\begin{lstlisting}
-_PSTK = []  # Stack used by IF, etc. to share data
+The `JP(i)` routine sets `_IP = i` and the `JPZ(i)` does it only if the top of `_DSTK`(which is removed) is zero. A moment of Zen meditation should convince the reader that indeed this sequence does what it should.
 
-def IF(v):
-    compile_words(1)    # compile everything before IF
-    push(_PSTK, FI)     # FI expects this
-    push(_PSTK, IF)     # THEN expects this
+The only difficulty in compiling this code is that, say, the argument of `JP` compiled by `ELIF` will be known only when `FI` will be interpreted, so the location in che code where to store this address must be stored on the `_PSTK` so that `FI` could retrieve it: this is done by each `ELIF` word, so that actually a list of such addresses is maintaned (see the implementation in [wtf.py](wtf.py) for more information and the complete implementation).
 
-def THEN(v):
-    error_on(pop(_PSTK) != IF, "'THEN' without 'IF'")
-    # Compile expressions to _CSTK and next compile JP
-    compile_words(1)
-    compile(255, JPZ, 1e20) # 1e20 changed later
-    # mark where the jumping "address" will be written
-    push(_PSTK, len(_CSTK) - 1)
-    push(_PSTK, THEN)   # ELSE and FI expect this
-\end{lstlisting}
-\end{frame}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Conditional implementation}
-\begin{lstlisting}
-def ELIF(v):
-    ELSE(v)
-    pop(_PSTK)
-    push(_PSTK, IF)     # THEN expects this
-
-def ELSE(v):
-    error_on(pop(_PSTK) != THEN, "'ELSE' without 'THEN'")
-    # Compile expressions to _CSTK and next compile JP
-    compile_words(1)
-    compile(255, JP, 1e20)  # 1e20 changed later
-    i = pop(_PSTK)      # index where to write a jump address
-    # mark where the jumping "address" will be written
-    j = len(_CSTK) - 1
-    push(_PSTK, j)
-    _CSTK[i] = j + 1    # The JPZ compiled by THEN jumps here
-    push(_PSTK, ELSE)   # FI expects this
-
-\end{lstlisting}
-\end{frame}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Conditional implementation}
-\begin{lstlisting}
-def FI(v):
-    m = pop(_PSTK)
-    error_on(m != THEN and m != ELSE, "'FI' without 'THEN'/'ELSE'")
-    # A list of addresses where to write a pointer to the next
-    # compiled instruction are written above FI in _PSTACK: they
-    # are n + 1, being n the number of ELIFs
-    compile_words(1)
-    while (i := pop(_PSTK)) != FI:
-        _CSTK[i] = len(_CSTK)
-
-_DICT.extend(["IF", 0, IF, None,
-              "THEN", 0, THEN, None,
-              "ELIF", 0, ELIF, None,
-              "ELSE", 0, ELSE, None,
-              "FI", 0, FI, None])
-
-\end{lstlisting}
-\end{frame}
+Next we come to loops. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{frame}[fragile]{WTF loops}
