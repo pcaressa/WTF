@@ -1,14 +1,14 @@
-# WTF
+# WTF: Word Translation as in Forth
 
-## Word Translation as in Forth
+## A Python commentary to Chuck Moore's unpublished book
 
-### Paolo Caressa
+### (c) by Paolo Caressa
 
 #### v 1.0, Oct 2022
 
 ## Introduction
 
-WTF (at least in this document) means *Word Translation as in Forth*: indeed, WTF draws inspiration from the classic Forth language, essentially described by its creator Charles Moore in an unpublished book available online [Programming a Problem Oriented Language](http://forth.org/POL.pdf): if you still haven't read this book then stop reading me and follow the link! The simplicity, elegance and versatility of Forth are the ideal target of WTF, whose design draws inspiration from Moore's book to provide:
+WTF (at least in this document) means *Word Translation as in Forth*: indeed, WTF draws inspiration from the classic Forth language, essentially described by its creator Charles Moore in an unpublished book available online [Programming a Problem Oriented Language](http://forth.org/POL.pdf): if you still haven't read this book then stop reading me and follow the link! The simplicity, elegance and versatility of Forth are the ideal pursued by WTF, whose design draws inspiration from Moore's book to provide:
 
 - A procedural language with an Algol-like syntax.
 - A compiler that, up to a bootstrap and efficiency considerations, could be written in the language itself.
@@ -17,7 +17,7 @@ WTF (at least in this document) means *Word Translation as in Forth*: indeed, WT
 
 The only data structure I'll use to implement that is the stack: stacks were invented by Alan Turing in 1946 report [Proposals for Development in the Mathematics Division of an Automatic Computing Engine](https://en.wikisource.org/wiki/Proposed_Electronic_Calculator) to handle subroutines calls even if, in 1957, Klaus Samelson and Friedrich Bauer, unaware of Turing contribution, filed a patent for it. In the 60s, stack-based interpreters for the Algol-60 language emerged (see E.W. Dijkstra [A simple mechanism modelling some features of Algol 60](https://archive.computerhistory.org/resources/text/algol/ACM_Algol_bulletin/1060960/p14-dijkstra.pdf) and in 1971 Niklaus Wirth programmed the first Pascal compiler translating to a byte-code for a stack VM (see e.g. [Pascal-S: A Subbet and its Implementation](https://sysovl.info/pages/blobs/ethz/Wirth-PascalS.pdf)). In the same year Moore finished his book, containing ideas developed in the 60s and exerting a great influence in the 1970s/1980s. From 1990s on, most languages used stack virtual machine as byte-code: Java, C\#, Python etc.
 
-WTF current implementation is written in a simple minded but easy-to-port non idiomatic Python. The program `wtf.py` is an interpreter that compiles a source file into an inner threaded code which is then executed. Use it as
+WTF current implementation is written in a simple minded but easy-to-port non idiomatic Python. The program [wtf.py](wtf.py) is an interpreter that compiles a source file into an inner threaded code which is then executed. Use it as
 
 ```bash
     $ python wtf.py source
@@ -200,23 +200,23 @@ will result in the following words: `PRINT`, `(`, `1`, `+`, `2`, `)`, `*` and `3
 
 ### 2.2. How a source file is compiled
 
-We will need the following stacks, during the compiling process:
+The compiling technique Moore's describes in his book and I'll repeat here is a smart bottom-up operator precedence algorithm, discussed for example as early as in 1959 by H. Kanner *An Algebraic Translator*, CACM 2(10), 19-22. However my approach will be so elementary that no notion on formal languages nor compiling theory will be needed.
 
-- `_DICT` used to store quadruples *(w, p, r, v)*.
-- `_DSTK` used to store temporary single data (numbers/references).
-- `_CSTK` used to store "compiled code" thus pairs *(r,v)* where *r* is the address of a subroutine and *v* a value passed it as parameter.
+Instead, we will need the following stacks, during the compiling process:
+
+- `_DICT`, the *dictionary*, used to store quadruples *(w, p, r, v)*.
+- `_DSTK`, the *stack*, used to store temporary single data (numbers/references).
+- `_CSTK`, the *code stack*, used to store "compiled code" thus pairs *(r,v)* where *r* is the address of a subroutine and *v* a value passed it as parameter.
 
 Those stacks will be also available at run-time and they are, at start, empty, except for `_DICT` which contains built-in words.
 
-The compilation process scans words from the source file and compiles them to the `_CSTK` stack, using the `_DSTK` as store for words not yet to be compiled but already scanned.
-
-Indeed, once a word *w* has been parsed we look for it inside the dictionary whose elements are quadruples *(w, p, r, v)* where:
+The compilation process scans words from the source file and compiles them to the `_CSTK` stack, using the `_DSTK` as store for words not yet to be compiled but already scanned. Indeed, once a word *w* has been parsed we look for it inside the dictionary whose elements are quadruples *(w, p, r, v)* where:
 
 - *p* is an unsigned byte, the *priority* of the word.
 - *r* is the address of a machine language subroutine, the *routine* of the word.
 - *v* is a the *word value* which is passed to the subroutine as parameter.
 
-The higher *p** the sooner the word will be compiled, while the subroutine call *r(v)* represents the operational semantics of the word.
+The higher *p* the sooner the word will be compiled, while the subroutine call *r(v)* represents the operational semantics of the word.
 
 Namely, suppose we parsed *w* and found it in `_DICT` as *(w,p,r,v)*:
 
@@ -408,11 +408,11 @@ To begin with let us introduce a set of words to handle algebraic expressions in
 |    110   | `* /`              |
 |    120   | `NEG`              |
 |    130   | `**`               |
-|    250   | `ABS`              |
+|    250   | `ABS ROUND`        |
 |    255   | any number         |
 
 
-Notice that the parentheses, which are also special characters, have priority 0: this means that they are not compiled but rather they do something during compiling. Namely, since they alter the priority of compilation, making all stuff enclosed between them with highest priority, they do the following:
+Notice that the parentheses, which are also special characters, have priority 0: this means that they are not compiled but rather they do something during compile time. Namely, since they alter the priority of compilation, making all stuff enclosed between them with highest priority, they do the following:
 
 - `(` pushes on `_DSTK` a fake word `(0, NIL, NIL)` which has priority 0 (no compiled word has it!).
 - `)` pops items from `_DSTK` and compiles them on `_CSTK` until the fake element `(0, NIL, NIL)` is found (and removed).
@@ -474,7 +474,7 @@ To define and initialize a variable use the word `DEF`, which does the following
 - Runtime effects:
     - Pop the result of the evaluation of the expression following `=` and store it at `_VSTK[i]`.
 
-For example the sequence `DEF x = 1` performs the following at compiling time:
+For example the sequence `DEF x = 1` performs the following at compile time:
 
 - The `DEF` word is executed and does the following
     - Pushes 0 on `_VSTK`.
@@ -484,13 +484,13 @@ For example the sequence `DEF x = 1` performs the following at compiling time:
     - Parses the word "=".
 - The `1` word immediately pushes `(PUSH,1)`on `_CSTK`.
 
-Finally all words from `_DSTK` are pushed on `_CSTK` so that the latter results in `[(PUSH,1) (VSTORE,i)]`. So, the variable is defined during compiling, and its value is initialized at run time.
+Finally all words from `_DSTK` are pushed on `_CSTK` so that the latter results in `[(PUSH,1) (VSTORE,i)]`. So, the variable is defined during compile time, and its value is initialized at run time.
 
 Notice that a variable may be defined time and again: being both the dictionary `_DICT` and `_VSTK` stacks, a new definition shadows but not deletes the previous ones: this feature will be useful for local variables.
 
 To modify an existing variable to a new value use the word `LET` which has priority 0 and does the following.
 
-- At compiling time
+- At compile time
     - Scan a word *w* and looks for it inside the dictionary.
     - If *w* is not found an error is raised.
     - Scan a word raising an error if is not `=`.
@@ -520,7 +520,7 @@ States are not a bad idea in themselves, but they introduce complexity and the t
 
 Variables defined by means of `DEF` can contain a memory cell value, thus a floating point number or an address: for example we can store strings into variables, by means of a curios word, the double quote, which is a special character: it does the following.
 
-- At compiling time:
+- At compile time:
     - Scans characters until the next double quote is found and stores them into a buffer, returning its address a.
     - If no double quote follows the opeining one, a *End of file inside string* error is raised and execution is stopped.
     - Compiles `PUSH`(a).
@@ -568,7 +568,7 @@ For example:
     PRINT LEN s     \ Prints 4
 ```
 
-However WTF allows to use stacks as lists: to get the $i$-th element of a stack (where the bottomest element has index 0) use the classical notation *s*`[`*i*`]`, for example:
+However WTF allows to use stacks as lists: to get the *i*-th element of a stack (where the bottomest element has index 0) use the classical notation *s*`[`*i*`]`, for example:
 
 ```
     STACK s
@@ -627,7 +627,7 @@ Let us consider conditionals first: we borrow from Algol-68 the following condit
     ...
 ```
 
-No need to explain it: maybe it is of some interest how it can be compiled. Each word `IF THEN ELIF ELSE FI` has priority 0, this it is executed at compiling time, and it communicates with other words, that cannot be avoided, by means of a stack `_PSTK`(I do not remember anymore what the *P* stands for).
+No need to explain it: maybe it is of some interest how it can be compiled. Each word `IF THEN ELIF ELSE FI` has priority 0, this it is executed at compile time, and it communicates with other words, that cannot be avoided, by means of a stack `_PSTK`(I do not remember anymore what the *P* stands for).
 
 The compiled code resulting from the previous snippet should go as follows (labels on the left are indexes to `_CSTK`)
 
@@ -653,284 +653,292 @@ The `JP(i)` routine sets `_IP = i` and the `JPZ(i)` does it only if the top of `
 
 The only difficulty in compiling this code is that, say, the argument of `JP` compiled by `ELIF` will be known only when `FI` will be interpreted, so the location in che code where to store this address must be stored on the `_PSTK` so that `FI` could retrieve it: this is done by each `ELIF` word, so that actually a list of such addresses is maintaned (see the implementation in [wtf.py](wtf.py) for more information and the complete implementation).
 
-Next we come to loops. 
+For example, the code
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{WTF loops}
+```
+    DEF x = 20
+    IF x = 1 THEN
+        PRINT 1
+    ELIF x = 2 THEN
+        PRINT 2
+    ELIF x = 3 THEN
+        PRINT 2
+    ELIF x >= 0 THEN
+        PRINT 10
+    ELSE
+        PRINT -10
+    FI
+```
 
-\begin{multicols}{2}
-\tt
-\qquad WHILE *e*\\
-\qquad DO *s*\\
-\qquad OD\\
-\qquad ...\\[1em]
-\qquad FOR *w* \ \ \char92 DEF *w*\\
-\qquad\quad = *e_1*\\
-\qquad\quad TO *e_2*\\
-\qquad DO\\
-\qquad \quad *s*\\
-\qquad NEXT\\
-\qquad ...
+is compiled as (we mark with a comment the instruction followed by the compiled code: indexes on the left are indexes to `_CSTK` elements; jumps to 64 are out of range and makes execution to stop).
 
-\columnbreak
-\small
-    *i_0*\qquad\ *e* \\
-    *i_1*\qquad\ `JPZ(*i_2+2*)` \\
-    *i_1+2*\ \ *s* \\
-    *i_2*\qquad\ `JP(*i_0*)` \\
-    *i_2+2*\ \ ...\\
-\medbreak
-    *i_0*\qquad\ *e_1* \\
-    *i_0+2*\ \ `VSTORE(*v*)` \\
-    *i_0+4*\ \ `VPUSH(*v*)` \\
-    *i_0+6*\ \ *e_2*\\
-    *i_0+8*\ \ `LT(NIL)`\\
-    *i_0+10*\ `JPZ(*i_1+4*)`\\
-    *i_0+12*\ *s*\\
-    *i_1*\qquad\ `VINCR(*v*)` \\
-    *i_1+2*\ \ `JP(*i_0+4*)`\\
-    *i_1+4*\ \ ...
-\end{multicols}
+```
+\ DEF x = 20
+    00: PUSH(20.0)
+    02: VSTORE(0)       \ Pop 20 and store it into x
+    04: VPUSH(0)        \ Push the value of x
+\ IF x = 1
+    06: PUSH(1.0) 
+    08: EQ(None)        \ x = 1?
+    10: JPZ(18)         \ If not jump to 18
+\ THEN PRINT 1
+    12: PUSH(1.0)
+    14: PRINT(None)
+    16: JP(64)          \ Jump outside code stack = END
+\ ELIF x = 2  
+    18: VPUSH(0)        \ Push the value of x
+    20: PUSH(2.0)
+    22: EQ(None)        \ x = 2?
+    24: JPZ(32)         \ If not jump to 32
+\ THEN PRINT 2
+    26: PUSH(2.0)
+    28: PRINT(None)
+    30: JP(64)          \ Jump outside code stack = END
+\ ELIF x = 3
+    32: VPUSH(0)
+    34: PUSH(3.0)
+    36: EQ(None)        \ x = 3?
+    38: JPZ(46)         \ If not jump to 46
+\ THEN PRINT 3
+    40: PUSH(3.0)
+    42: PRINT(None)
+    44: JP(64)          \ Jump outside code stack = END
+\ ELIF x >= 0
+    46: VPUSH(0)
+    48: PUSH(0.0)
+    50: GEQ(None)       \ x >= 0?
+    52: JPZ(60)         \ If not jump to 60
+\ THEN PRINT 10
+    54: PUSH(10.0)
+    56: PRINT(None)
+    58: JP(64)          \ Jump outside code stack = END
+\ ELSE PRINT -10
+    60: PUSH(-10.0)
+    62: PRINT(None)
+\FI
+```
 
-\end{frame}
+Next we come to loops: I've inserted two classical loop structures into the language, more can be easily added. The first one is the undefined loop based on the `WHILE` word, which is used as `WHILE e DO s OD`.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Loops implementation}
-\begin{lstlisting}
-def WHILE(v):
-    compile_words(1)    # compile everything before WHILE
-    # mark where to jump to repeat the loop
-    push(_PSTK, len(_CSTK))
-    push(_PSTK, WHILE)  # DO expects this
+The effect is to execute *s* if and as long as the condition *e* is not zero: the words `WHILE DO` and `OD` cooperates to compile the following code:
 
-def DO(v):
-    m = pop(_PSTK)
-    error_on(m != WHILE and m != FOR, "'DO' without 'WHILE' or 'FOR'")
-    # Compile expressions to _CSTK and next compile JP
-    compile_words(1)
-    compile(255, JPZ, 1e20) # changed later
-    # mark where the jumping "address" will be written
-    push(_PSTK, len(_CSTK) - 1)
-    push(_PSTK, DO)   # OD expects this
-\end{lstlisting}
-\end{frame}
+```
+    i_0:    e
+    i_1:    JPZ(i_2+2)  \ Compiled by DO
+    i_1+2:  s
+    i_2:    JP(i_0)     \ Compiled by OD
+    i_2+2:  ...
+```
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Loops implementation}
-\begin{lstlisting}
-def OD(v):
-    error_on(pop(_PSTK) != DO, "'OD' without 'DO'")
-    # now _PSTK = [..., a, b] where a is the address of the while
-    # condition and b is the address of the argument of the JPZ
-    # compiled by OD: in the latter we need to write the address
-    # of the first item following the loop, the former will be # the argument of the JP compiled by OD to repeat the loop.
-    b = pop(_PSTK)
-    a = pop(_PSTK)
-    compile_words(5)
-    compile(255, JP, a)
-    _CSTK[b] = len(_CSTK)
+The `WHILE` words mark where `OD` should compile the backward jump. For example,
 
-_DICT.extend(["WHILE", 0, WHILE, None,
-              "DO", 0, DO, None,
-              "OD", 0, OD, None])
-\end{lstlisting}
-\end{frame}
+```
+    DEF x = 10
+    WHILE x >= 0 DO
+        PRINT x
+        LET x = x - 1
+    OD
+```
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Loops implementation}
-\begin{lstlisting}
-def FOR(v):     # FOR w = e1 TO e2 DO ... NEXT
-    DEF(0)
-    push(_PSTK, _DICT[-1])  # index of the control variable,
-                            # needed later
-    push(_PSTK, FOR)        # TO expects this
+is compiled as
 
-def TO(v):      # TO expr DO
-    compile_words(1)
-    j = len(_CSTK)      # location of the "TO condition": NEXT
-                        # will jump here to repeat the loop
-    error_on(pop(_PSTK) != FOR, "'TO' without 'FOR'")
-    # compile the condition "loopvar < expr"
-    i = pop(_PSTK)      # loop variable index in _VSTK
-    compile(255, VPUSH, i)
-    compile(50, LT, None)
-    push(_PSTK, j)
-    push(_PSTK, i)
-    push(_PSTK, FOR)
+```
+\ DEF x = 10
+    00: PUSH(10.0)
+    02: VSTORE(0)       \ Pop 0 and stores it into x
+\ WHILE x >= 0
+    04: VPUSH(0)
+    06: PUSH(0.0)
+    08: GEQ(None)       \ x >= 0?
+    10: JPZ(26)         \ If not jump to 26
+\ DO
+\ PRINT x
+    12: VPUSH(0)
+    14: PRINT(None)
+\ LET x = x - 1
+    16: VPUSH(0)
+    18: PUSH(1.0)
+    20: SUB(None)
+    22: VSTORE(0)
+\ OD
+    24: JP(4)
+```
 
-# Compiled by NEXT (see next slide)
-def VINCR(v):
-    global _VSTK
-    _VSTK[v] += 1
-\end{lstlisting}
-\end{frame}
+While the syntax of the while-loop resembles Algol-68, the for-loop is taken from BASIC:
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Loops implementation}
-\begin{lstlisting}
-def NEXT(v):
-    global _CSTK
-    # expect _PSTK = [ ... j i b FOR ] where j is the address
-    # where the NEXT will jump to iterate the loop, i is the
-    # index in _VSTK of the loop control variable, b is the 
-    # address of the argument of the JPZ compiled by DO where 
-    # the address of the first instruction following the loop
-    # needs to be stored.
-    error_on(pop(_PSTK) != DO, "'NEXT' without 'DO'")
-    b = pop(_PSTK)
-    i = pop(_PSTK)
-    j = pop(_PSTK)
-    # compile the increment of the loop variable
-    compile(255, VINCR, i)
-    # compile a jump to the condition compiled by TO
-    compile(255, JP, j)
-    # compile the address of the next instruction at b
-    _CSTK[b] = len(_CSTK)
+```
+    FOR w = e1 TO e2 DO
+        s
+    NEXT
+```
 
-_DICT.extend(["FOR", 0, FOR, None,
-              "TO", 0, TO, None,
-              "NEXT", 0, NEXT, None])
+In this case, `FOR` defines a new variable and initializes it to *e1* (so it is equivalent to `DEF w = e1`), while `TO` compiles a while-condition which is true until *w < e2* (beware, if *e1 = e2* the loop is not iterated anymore!) and `NEXT` compiles the code which increases the loop variable (it would be possible let `DO` do this with a little more effort).
 
-\end{lstlisting}
-\end{frame}
+So the compiled code is as follows:
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Commands, procedures, functions}
+```
+    i_0:    e_1
+    i_0+2:  VSTORE(v)
+    i_0+4:  VPUSH(v)
+    i_0+6:  e_2
+    i_0+8:  LT(NIL)
+    i_0+10: JPZ(i_1+4)
+    i_0+12: s
+    i_1:    VINCR(v)
+    i_1+2:  JP(i_0+4)
+    i_1+4:  ...
 
-Our final step toward a minimal but decent programming language will be the introduction of user defined subroutines. The BASIC principle suggests not to introduce a general construction to define any word with any priority: rather we'll allow for
+```
 
-\begin{itemize}
-    \item {\em Commands}, user defined words with priority 0.
-    \item {\em Procedures}, words with priority 10 (such as `PRINT`).
-    \item {\em Functions}, words with priority 250.
-\end{itemize}
+For example consider the loop to find an element in a stack by a linear search:
+
+```
+    STACK s
+        PUSH(s 3)
+        PUSH(s -1)
+        PUSH(s 0)
+        PUSH(s 2)
+    
+    DEF to-find = 0
+    FOR i = 0 TO LEN(s) DO
+        IF s[i] = to-find THEN
+            PRINT i
+        FI
+    NEXT
+```
+
+This is compiled as (the 0-th element of `_VSTK` contains the value of `s`, the 1-th element of `_VSTK` contains the value of `to-find` and the 2-th of `_VSTK` contains the value of `i`):
+
+```
+\ STACK s
+\ PUSH(s 3)
+    00: VPUSH(0)
+    02: PUSH(3.0)
+    04: SPUSH(None)
+\ PUSH(s -1)
+    06: VPUSH(0)
+    08: PUSH(-1.0)
+    10: SPUSH(None)
+\ PUSH(s 0)
+    12: VPUSH(0)
+    14: PUSH(0.0)
+    16: SPUSH(None)
+\ PUSH(s 2)
+    18: VPUSH(0)
+    20: PUSH(2.0)
+    22: SPUSH(None)
+\ DEF to-find = 0
+    24: PUSH(0.0)
+    26: VSTORE(1)
+\ FOR i = 0
+    28: PUSH(0.0)
+    30: VSTORE(2)
+\ TO LEN(s)
+    32: VPUSH(2)
+    34: VPUSH(0)
+    36: SLEN(None)
+    38: LT(None)
+    40: JPZ(62)
+\ DO
+\ IF s[i] = to-find
+    42: VPUSH(0)
+    44: VPUSH(2)
+    46: IPUSH(None)
+    48: VPUSH(1)
+    50: EQ(None)
+    52: JPZ(58)
+\ THEN PRINT i
+    54: VPUSH(2)
+    56: PRINT(None)
+\ FI
+\ NEXT
+    58: VINCR(2)    \ Increases _VSTK[2], thus i
+    60: JP(32)      \ Repeat the loop
+```
+
+Of course one could provide a specific loop to scan elements of a stack, and also introduce for-loops that decreases the loop variable downto a lower limit.
+
+### 3.5. Subroutines
+
+The final step toward a minimal but decent programming language will be the introduction of user defined subroutines (or procedures or function or methods or whatever you call them). Even if it would be possible to introduce a general construction to define any word with any priority: I'll rather allow to define just:
+
+- *Commands*, user defined words with priority 0.
+- *Procedures*, words with priority 10 (such as `PRINT`).
+- *Functions*, words with priority 250.
 
 It'll turn out that our stack discipline for variables implies a rough concept of local variable without changes at all!!!
 
-\end{frame}
+I shall describe PROCedures: the case of ComManDs and FUNCtions will be similar. The syntax is
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Defining a new chunk of code}
+```
+    PROC w
+        ...
+    EMD
+```
 
-We'll consider PROCedures, the case of ComManDs and FUNCtions will be similar. The syntax is
+First we'll need some runtime routine to fetch and store data inside this stack:
 
-\medbreak
-\qquad\qquad`PROC` *w*\\
-\qquad\qquad\qquad ...\\
-\qquad\qquad`END`
-\medbreak
+- `CALL(i)` which pushes `_IP` on `_VSTK`.
+- `RET(i)` which pops from `_VSTK` an address which is stored in `_IP`.
 
-`PROC` parses word *w* and defines a new definition *(w, 10, `CALL`, a)* where *a* is the address of a stack where the ... words are compiled. The `END` command compiles `RET` (which pairs `CALL`) and restores the compilation to `_CSTK`.
+`PROC` is a priority 0 word that parses the next word *w* and inserts a new definition *(w, 10, `CALL`, a)* where *a* is the address of a stack where the words between $w$ and `END` are compiled. The `END` command compiles `RET` (which pairs `CALL`) and restores the compilation to `_CSTK`.
 
-\medbreak
-Moreover, definitions occurred inside the procedure are deleted by `END`, allowing for local data. 
-\end{frame}
+More precisely
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Example}
+- At compile time `PROC`:
+    - Saves on `_PSTK` the address of `_CSTK`.
+    - Allocates a new empty stack and assigns it to `CSTK`.
+    - Scan a word *w* and insert a definition (*w*, 10, `CALL`, `_CSTK`) on `_DICT`.
+    - Saves on `_PSTK` the index of the last element of the dictionary.
+- Runtime effects:
+    - `PROC` has no direct runtime effects but the word *w* it defines when compiled will perform a CALL to the code compiled between `PROC` and `END`.
 
-\begin{lstlisting}
-PROC sort
-    \ Insert sort
-    DEF L = \ Local parameter, empty definition
-    DEF tmp = 0
-    DEF i = 0
-    DEF j = 0
+- At compile time `END`:
+    - Compiles all words pending in the `_DSTK`.
+    - Compiles (`RET`, `NIL`) on `_CSTK`.
+    - Pops from `_PSTK` the index of the word definition preceding any definition given between `PROC` and `END` and deletes all those entries.
+    - Pops from `_PSTK` the previous value of `_CSTK`.
 
-    FOR i = 1 TO LEN(L) DO
-        LET j = i
-        WHILE (IF j > 0 THEN L[j - 1] > L[j] ELSE 0 FI) DO
-            LET tmp = L[j]
-            j OF L = L[j - 1]
-            j - 1 OF L = tmp
-            LET j = j - 1
-        OD
-    NEXT
-END
-\end{lstlisting}
-To call this procedure use `sort(*e*)` or even `sort *e*` if words in the sequence *e* have priorities *{}> 10*.
-\end{frame}
+Thus, not only `PROC` allocates a new code stack and makes it the current one, saving the previous one, but also compiles the call to this routine and marks the end of the dictionary, so that `END` will restore it, deleting any definition local to the `PROC` ... `END` block.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Procedures implementation}
-\begin{lstlisting}
-def CALL(v):
-    global _IP, _CSTK
-    push(_VSTK, _CSTK)  # saves on _VSTK the current _CSTK
-    push(_VSTK, _IP)    # and the current _IP. RET will restore.
-    _CSTK = v
-    _IP = 0
+In this way local variables may be defined via the same `DEF`, `STACK` and even `PROC` words!
 
-def CMD(v):
-    # same as CALL but invoked at compile time, therefore _IP==-1
-    # and _CSTK is under processing; therefore we save only _CSTK
-    # with a fake _IP == len(_CSTK) so that RET will set _IP
-    # to len(_CSTK) and execute() will terminate nicely.
-    global _IP, _CSTK
-    temp = _CSTK
-    push(_VSTK, v)      # needed by RET
-    push(_VSTK, len(v)) # needed by RET
-    _CSTK = v
-    execute()
-    _CSTK = temp
-    _IP = -1
-\end{lstlisting}
-\end{frame}
+For example consider:
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Procedures implementation}
-\begin{lstlisting}
-def BEGIN(p):
-    global _CSTK, _DICT
-    # Inserts a new definition in _DICT and leaves the _PSTK as
-    # [ ... c d BEGIN] where d is the current limit of _DICT and
-    # c is a reference to _CSTK. d is used to "undefine" all
-    # definition inside the block, while c is used to restore
-    # the stack where to compile the code surrounding the block.
-    # The value of the new definition is the address of the
-    # block code which will be compiled until the next END word.
-    # So we save _CSTK, define a new empty _CSTK pointed by the
-    # new word and save also a "sentinel" BEGIN expected by END
-    push(_PSTK, _CSTK)
-    _CSTK = []          # now code will be compiled here
-    insert_word(p, CMD if p == 0 else CALL, _CSTK)
-    push(_PSTK, len(_DICT))
-    push(_PSTK, BEGIN)  # END expects this
-\end{lstlisting}
-\end{frame}
+```
+    PROC swap01
+        DEF s = \ Parameter
+    
+        PROC swap   \ swap(s i j)
+            DEF j = \ Parameter
+            DEF i = \ Parameter
+            DEF s = \ Parameter
+            DEF temp = s[i]
+            i OF s = s[j]
+            j OF s = temp
+        END
+        swap(s 0 1)
+    END
+    
+    STACK s
+    PUSH(s 0) PUSH(s 1) PUSH(s 2) PUSH(s 3)
+    
+    PRINT s
+    swap01(s)
+    PRINT s
+```
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Procedure implementation}
-\begin{lstlisting}
-def RET(v):
-    global _IP, _CSTK
-    _IP = pop(_VSTK)
-    _CSTK = pop(_VSTK)
+This will print first `[0.0, 1.0, 2.0, 3.0]` and then `[1.0, 0.0, 2.0, 3.0]`. Notice that we omit the argument in a procedure parameter so that it will pop it from the stack where the caller pushed it. Namely, when we write `swap01(s)` we push `s` on the stack and call the `swap01` routine whose first instruction `DEF` assigns at runtime the value to its local variable `s` defined at compile time (at a different location than the `s` defined at global scope).
 
-def END(v):
-    global _CSTK, _DICT
-    compile_words(0)    # compile anything before END
-    error_on(pop(_PSTK) != BEGIN, "'END' without 'BEGIN'")
-    compile(255, RET, 0)
-    # deletes all definitions local to the ending one.
-    d = pop(_PSTK)  # len(_DICT) when BEGIN was executed
-    while len(_DICT) > d:
-        # drop the last four entries on top of _DICT
-        _DICT.pop()
-        _DICT.pop()
-        _DICT.pop()
-        _DICT.pop()
-    _CSTK = pop(_PSTK)
+Notice also that formal parameters are defined in the procedure in inverse order w.r.t. the actual ones, still because we are using a stack: one could try several tricks to avoid that, but I didn't.
 
-_DICT.extend(["CMD", 0, BEGIN, 0,
-              "PROC", 0, BEGIN, 10,
-              "FUNC", 0, BEGIN, 250])
-\end{lstlisting}
-\end{frame}
+Variables defined at outer scope are still available in nested scopes so that we could use the outer `s` variable inside both `swap01` and `swap`. Since we are using stacks to store both compile time definitions and runtime variables, nested procedures works automatically. 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Example of function}
-\begin{lstlisting}
+However notice that variables in `_VSTK` still are allocated at compile time: they are never disposed while the definitions that refers to them can be deleted. Since e are allocating space for values at compile time, calling a function time and again will result in using the same location for its local variable. Thus recursion is not allowed (this is the storage organization of the old versions of Fortran, as Fortran IV).
+
+But consider the snippet:
+
+```
 FUNC fact
     DEF x =
     IF x <= 1 THEN 1
@@ -941,212 +949,75 @@ END
 FOR x = 1 TO 11 DO
     PRINT fact(x)
 NEXT
-\end{lstlisting}
-
-This shall work as expected but {\em only because of the tail recursion}: since we do not allocate a new instance of a variable at runtime but only at compile time, general recursion won't work. However it is easy to modify the interpreter to do so.
-\end{frame}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{WTF can we do now?}
-
-\begin{itemize}
-    \item Files, source inclusions and other I/O stuff (actually did in the code on \link{https://github.com/pcaressa/WTF}{my GitHub repository}).
-    \item Writing WTF in WTF itself: most words can be defined in terms of a few primitive ones, and the interpreter itself can be written in WTF and bootstrapped accordingly.
-    \item Making compiled codes first class objects: for example code inside `\{` and `\}` could be compiled somewhere and the address returned on the stack to be used as value for a variable etc.
-    \item Introducing structures, objects, coroutines.
-\end{itemize}
-\end{frame}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}[fragile]{Thanks for your patience and attention!}
-\[\includegraphics[height=10em]{homer-sleeping.jpeg}\]
-
-Paolo Caressa
-\smallbreak
-\small\tt 
-    \link{https://gse.it/en}{GSE spa}\\
-    \link{https://www.linkedin.com/in/paolocaressa/}{https://www.linkedin.com/in/paolocaressa/}\\
-    \link{https://github.com/pcaressa}{https://github.com/pcaressa}
-\end{frame}
-
-\end{document}
-
-\small\tt 
-    \link{https://www.linkedin.com/in/paolocaressa/}{https://www.linkedin.com/in/paolocaressa/}\\
-    \link{https://github.com/pcaressa}{https://github.com/pcaressa
-
-
-
-Let's give an example, considering the program
-
-```wtf
-PRINT 1 + 2
 ```
 
-This program consists of 4 tokens, which in WTF are called *words*, that is, the symbols `PRINT 1 + 2`. The WTF compiler scans one word at a time from the source text and compiles it or, in some cases, executes it immediately according to a criterion that we will explain below.
+It'll work!!! That is because the recursion in this case is a tail recursion: since we do not allocate a new instance of a variable at runtime but only at compile time, general recursion won't work.
 
-In any case, up to numerical constants that are interpreted as decimal numbers and a special notation for byte string, every word that the compiler scans must have been defined previously, otherwise an error is reported.
+So,if you want WTF recursion you'll have to modify the compiler so to generate space for variables at runtime, not at compile time.
 
-Words are placed in a list called the *dictionary*, which contains information about the word:
+### 3.6. Odds & Ends
 
-- The *name* of the word, which is a string.
-- The *priority* of the word, which is an integer between 0 and 255: if it is 0 the word is executed at compile time, otherwise it is compiled but the earlier than the others the higher its priority. Words with priority 255 are compiled immediately, the same happens for constants.
-- The *routine* of the word, thus (the address of) a machine language subroutine that is launched when the word is executed (the `PUSH` and `ADD` of the Python examples of the previous paragraph).
-- The *value* of the word, thus a single memory cell (that can contain a number or an address) which is the parameter passed to the routine when the latter is executed.
+I have added some words to handle files and even to include and compile another source file: the next step would be to provide words to encapsulate data inside a file so to export only part of it when included.
 
-When the compiler comes across a word, it searches for it in the dictionary and according to the word priority executes it immediately, launching the associated subroutine, otherwise, at the appropriate time (based on priority) compiles it into the object code it is building, by entering the address of the subroutine in machine code associated with it or the address of the value associated with it.
+The word `INCLUDE` scans the word following it, interpret it as a file name and opens this file, saving the current one on `_PSTK`. The effect is the same with C inclusions, just the text of the included file is immediately compiled where the `INCLUSION` word appears.
 
-Let's suppose, for example, that we have the following definitions in the symbol table:
+To deal with file use the following words:
 
-- ("PRINT", 10, PRINT, NIL)
-- ("+", 100, ADD, NIL)
-- ("PUSH", 250, PUSH, NIL)
+- `OPEN`(name mode) which has priority 200 and opens the file whose name is provided with the given mode (as in C and Python it can be "r", "w", "a"): both name and mode of the file should be strings, we already discussed them above when describing the `DEF` word. The function returns a handle to the file, or the `NIL` pointer if the opening failed.
+- `CLOSE`(handle) which has priority 10 and closes an opened file, given its handle.
+- `FGET`(handle) which parses a single character from the given file and returns it on the stack: it has priority 200.
+- `FPUT`(handle c) which writes a single character into the given file: the character is passed as number, and transformed into the corresponding ASCII character.
 
-Now we compile in an initially empty array the statement `PRINT 1 + 2`: the first word we encounter is `PRINT` and its priority is low, so we move on (later I will provide the algorithm that specifies the adjective "low"); next we find the number 1: this has the effect of being compiled immediately, as `PUSH 1`, then the compiled code (which is a list of memory cells) becomes, writing the cells in column, one per row:
+A couple of useful functions are:
 
-```text
-address of subroutine PUSH
-1
+- `ROUND`(e) which rounds a number to the nearest integer.
+- `RAND` which has priority 255 and no parameters, and pushes on the stack a random number between 0 and 1.
+
+What next? One can improve, in several ways this language by, say:
+- include more I/O stuff and exception handling;
+- introduce structures, objects, coroutines.
+- make compiled codes first class objects: for example code inside `\{` and `\}` could be compiled somewhere and the address returned on the stack to be used as value for a variable etc.;
+
+Moreover, with little effort the core routines of the program, such as the scanner, the compiler and the interpreter of the compiled code, may be made words accessible by the language itself, as well as built-in stacks may. One could also try to write the compiler in WTF itself, bootstrapping it with the bare amount of foreign code needed.
+
+More on that in future projects, this one had as only purpose to show some classic techniques in a non standard way and promote the ideas in Moore's book.
+
+## 4. Usage and Builtin words
+
+In this section the complete list of words built-in the dictionary at start up is provided for the [wtf.py](wtf.py) interpreter.
+
+Launch the interpreter as
+
+```bash
+    $ python --dump-obj --dump-dict --dump-vars SOURCE-FILE
 ```
 
-Then we meet the word `+` which again is not immediately compiled, then we find another number and then compile in as before:
-
-```text
-address of subroutine PUSH
-1
-address of subroutine PUSH
-2
-```
-
-Since the instruction is finished, we remember the words that we have "kept pending" by compiling them out from the most prioritary down, thus obtaining:
-
-```text
-address of subroutine PUSH
-1
-address of subroutine PUSH
-2
-address of subroutine ADD
-address of subroutine PRINT
-```
-
-(To keep track of the right order of pending words, just push them on a stack: they will be retrieved in the order in which they were pushed.)
-
-To run this compiled code, one uses a word of the language, `EXECUTE` that expects on the stack the address of the array that contains the object code. What `EXECUTE` does is the following (we give a Python paraphrase)
-
-```Python
-c = pop_top_of_stack()
-ip = 0
-while ip < length_of_array(c):
-    call_subroutine(c[ip])
-    ip = ip + 1
-```
-
-The `ADD`, `PRINT`, `PUSH` etc. subroutines all have access to the variables `c`, `ip` and the stack, which are all system variables also encoded in words visible to the programmer and accessible. In particular, the `PUSH` subroutine increments `ip` and reads from the cell pointed by it in the array `c` the number to be pressed on the stack, as in the introductory examples.
-
-To close this paragraph let me describe what the values of words are for: let's give another example.
-
-```wtf
-DEFINE x <- 1
-PRINT x + 1
-```
-
-It is a very stupid program that defines a variable `x` by assigning it the value 1 and then prints the increment of 1, so we expect it to print 2. We have two other words that we must assume exist in the table of symbols:
-
-- ("DEFINE", 0, has subroutine, DEFINE, has no value)
-- ("<-", 20, has subroutine, ASSIGN, has no value)
-
-When we scan the word `DEFINE`, since it has zero priority we execute it immediately, that is, we call the `DEFINE` subroutine, which in turn scans a word from the source file, finding `x`, checks that it is not already in the symbol table and inserts a new symbol
-
-- ("x", 255, has no subroutine, has no value, 0)
-
-Then `DEFINE` inserts a new definition into the symbol table with priority 255, with no associated subroutines but with an initially null associated value.
-
-Moreover, `DEFINE` also compiles some code, precisely that which will execute at run time by pushing the address of the value of the word just entered on the stack:
-
-```text
-address of subroutine PUSH
-address of value of x
-```
-
-Continuing the scan, we find the word `<-` which instead should be compiled but with priority 20, so for the moment we continue and mark a number, 1, which is immediately compiled:
-
-```text
-address of subroutine PUSH
-address of value of x
-address of subroutine PUSH
-1
-```
-
-We have completed scanning the first line of the program so we fill in the pending word `<-`:
-
-```text
-address of subroutine PUSH
-address of value of x
-address of subroutine PUSH
-1
-address of subroutine ASSIGN
-```
-
-Now we mark the second line of the program and meet `PRINT` which, as usual, we keep pending. Then we scan `x`: we look for it in the dictionary and find it (we have just entered it!) and since it has priority 255 we immediately insert it into the object code; however, since it has a value, too, we compile the statement to push it on the stack (the `IPUSH` statement that, given an address that follows it immediately in the code, pushes the contents of that address on the stack), and since it has no associated subroutine we do not compile anything else. Now the object code is
-
-```text
-address of subroutine PUSH
-address of value of x
-address of subroutine PUSH
-1
-address of subroutine ASSIGN
-address of subroutine IPUSH
-address of value of x
-```
-
-Then we scan `+` that we also keep in suspense and finally we scan the constant 1 that is compiled and, below, we compile the two pending words in descending order of priority, obtaining the object code
-
-```text
-address of subroutine PUSH
-address of value of x
-address of subroutine PUSH
-1
-address of subroutine ASSIGN
-address of subroutine IPUSH
-address of value of x
-address of subroutine PUSH
-1
-address of subroutine ADD
-address of subroutine PRINT
-```
-
-When we run this code, we first execute `PUSH` that scans the literal that follows it and pushes it on the stack, in this case the address of the value of the word `x`. Then comes another `PUSH` that pushes the constant 1 on the stack. The `ASSIGN` subroutine just removes the two elements at the top of the stack and writes the value of the first onto the second, considered a memory address. So the effect is to assign the value 1 to the variable `x`.
-
-If we continue scanning the object code we come to `IPUSH` that reads the literal that follows it in the code, considers it a memory address and pushes on the stack the contents of that address. So we have the value of the variable on the stack (in this case we have just assigned it, it is 1).
-
-The next `PUSH 1` and `ADD` have the effect of leaving `1 + 1 = 2` on the stack and finally `PRINT` prints its value.
-
-The moral of this example is that variables are words like any other, with the particularity of possessing a value that persists during all program execution.
-
-At the center of both the compilation and execution phase there are stacks: a stack to contain temporary values of calculations and processing, used in compilation but above all in execution, and a stack to contain words, used in compilation. Each of these stacks is a native language object, an array.
-
----
-
- 
- 
- 
- a sort of "compiler compiler" which is based on the principles of the Forth programming language, but which do not
-
-## Builtin words
+being the switches optional and disabled by default. Only a single source can be compiled: use `INCLUDE` to compile several sources in a single session.
 
 In the following, when describing the runtime operations, the term "stack" will mean `_DSTK`, TOS will refer to its topmost element, 2OS to the element below TOS, and so forth. When referring to other stacks, they will always be explicitly mentioned.
+
+The list of all words follows.
+
+### Newline (the newline character)
+
+- Priority = 0.
+- Compile time: compiles all words in the `_DSTK` with priorities >0. 
+
+### `"`
+
+- Priority = 0.
+- Compile time: scans characters until a double quote is found and creates a string with those characters (excluded the final double quote. If no double quote follows, exits with an error.
+- Runtime: The address of the string is pushed on the stack.
 
 ### `(`
 
 - Priority = 0.
-- Compile time: pushes a fake word (0, ")", NIL) on the stack.
+- Compile time: pushes a fake word (0, ")", `NIL`) on the stack.
 
 ### `)`
 
 - Priority = 0.
-- Compile time: pops and compiles words from `_DSTK` to `_CSTK` until the fake word (0, ")", NIL) which is just removed. If no such fake word is found, an error is raised.
+- Compile time: pops and compiles words from `_DSTK` to `_CSTK` until the fake word (0, ")", `NIL`) which is just removed. If no such fake word is found, an error is raised.
 
 ### `*`
 
@@ -1211,91 +1082,205 @@ In the following, when describing the runtime operations, the term "stack" will 
 ### `CMD`
 
 - Priority = 0.
-- Compile time: scans a word w and creates a new definition (w, 0, CMD, v) being v the address of a stack that will contain the code compiled until the matching `END`.
+- Compile time: scans a word *w* and creates a new definition (*w*, 0, `CMD`, *v*) being *v* the address of a stack that will contain the code compiled until the matching `END`. The `CMD` runtime routine invokes a subroutine at compile time, while `CALL` does it at runtime.
 
 ### `DEF` w `=` ...
 
 - Priority = 0.
-- Compile time: scans a word w and creates a new variable definition (w, 0, VPUSH, v) being v the address of a stack that will contain the code compiled until the matching `END`. Furthermore the `=` word is scanned, raising an error if not following w.
-- Runtime: assigns to w the value of the expression following `=`.
+- Compile time: scans a word *w* and creates a new zero numeric variable definition (*w*, 0, `VPUSH`, *v*) being *v* the index in `_VSTK`of the new variable's value. Furthermore the `=` word is scanned, raising an error if not following *w*.
+- Runtime: assigns to *w* the value of the expression following `=`.
 
 ### `DO`
 
 - Priority = 0.
-- Compile time: matches a previous `WHILE` or `TO` and prepare a match for the corresponding `DO`.
+- Compile time: matches a previous `WHILE` or `TO` and prepares a match for the corresponding `DO`; compiles all words in the `_DSTK` with priorities >0.
 - Runtime: it the loop condition is not satisfied, jump after the matching `OD`.
 
-    "ELIF", 0, ELIF, None,
 
-    "ELSE", 0, ELSE, None,
+### `ELIF`
 
-    "END", 0, END, None,
+- Priority = 0.
+- Compile time: same as `ELSE` but prepares a match for `THEN`.
+- Runtime: same as `ELSE`.
 
-    "FCLOSE", 10, FCLOSE, None,
+### `ELSE`
 
-    "FGET", 200, FGET, None,
+- Priority = 0.
+- Compile time: matches a previous `THEN`, compiles all words in the `_DSTK` with priorities >0, pushes on `_PSTK` a reference to the argument of the jump to the end of the `IF-FI` structure, completes the jump compiled by the previous `THEN`, prepares a match for the corresponding `THEN`.
+- Runtime: skip the following code if the condition on the stack is zero
 
-    "FI", 0, FI, None,
+### `END`
 
-    "FOPEN", 200, FOPEN, None,
+- Priority = 0.
+- Compile time: matches a previous `CMD`, `FUNC` or `PROC`, compiles all words in the `_DSTK` with priorities >0, pops an index to `_DICT` from `_PSTK` and delete all items downto that index, pops `_CSTK` from `_PSTK`.
+- Runtime: Returns from the current subroutine.
 
-    "FOR", 0, FOR, None,
+### `FCLOSE`
 
-    "FPUT", 10, FPUT, None,
+- Priority = 10.
+- Runtime: pops a file descriptor and closes the file; exits on error.
 
-    "FUNC", 0, BEGIN, 250,
+### `FGET`
 
-    "IF", 0, IF, None,
+- Priority = 200.
+- Runtime: pops a file descriptor, reads a character from the file and pushes its ASCII code on the stack; exits on error.
 
-    "INCLUDE", 0, INCLUDE, None,
+### `FI`
 
-    "LEN", 200, SLEN, None,
+- Priority = 0.
+- Compile time: matches a previous `THEN` or `ELSE`, compiles all words in the `_DSTK` with priorities >0, pops from `_PSTK` jump addresses where to store the current compiling address.
+
+### `FOPEN`
+
+- Priority = 200.
+- Runtime: pops a mode string, pops a name string, opens the file with that name in that mode ("r", "w", "a") and returns a handle to it (an address); exits on error.
+
+### `FOR`
+
+- Priority = 0.
+- Compile time: same as `DEF` but pushes the variable address on `_PSTK` and prepares a match for the corresponding `TO`.
+- Runtime: assigns to the loop variable the initial value.
+
+### `FPUT`
+
+- Priority = 10.
+- Runtime: pops an ASCII code, pops a file handle, writes the character with that code on the file; exits on error.
+
+### `FUNC`
+
+- Priority = 0.
+- Compile time: scans a word *w* and creates a new definition (*w*, 250, `CALL`, *v*) being *v* the address of a stack that will contain the code compiled until the matching `END`.
+
+### `IF`
+
+- Priority = 0.
+- Compile time: compiles all words in the `_DSTK` with priorities >0, prepares a match for `THEN`.
+
+### `INCLUDE`
+
+- Priority = 0.
+- Compile time: pushes on `_PSTK` the reference to the current source file (handle, name, line number), scans a word and pushes it as a string on the stack, pushes "r" on the stack, performs `FOPEN` and assigns the resulting handle to the current source handle, compile the file, closes it and restores the previous values for the source file. Exits on error.
+
+### `LEN`
+
+- Priority = 200.
+- Runtime: pops the index of a variable from the stack, consider it as a stack and pushes its length on the stack.
+
+### `LET` w `=` ...
+
+- Priority = 0.
+- Compile time: scans a word *w* and check if a variable with that name exists (if not an error is raised), the `=` word is scanned, raising an error if not following *w*.
+- Runtime: assigns to *w* the value of the expression following `=`.
+
+### `NEG`
+
+- Priority = 120.
+- Runtime: pops a number and pushes its negation on the stack.
+
+### `NEXT`
+
+- Priority = 0.
+- Compile time: matches a previous `DO`, pops from `_PSTK` the jump address where to store the address just after the loop, pops from `_PSTK` the index of the loop variable, pops from `_PSTK` the address where to jump to iterate the loop and compiles the variable increasing and the jump.
+- Runtime: increases the loop variable and repeats the `FOR` loop from the conditon compiled by `TO`.
+
+### `NIL`
+
+- Priority = 255.
+- Runtime: pushes the null pointer on the stack.
+
+### `NOT`
+
+- Priority = 80.
+- Runtime: pops a number and pushes 1 if the number is 0, else pushes 0.
+
+### `OD`
+
+- Priority = 0.
+- Compile time: matches a previous `DO`, pops from `_PSTK` the jump address where to store the address just after the loop, pops from `_PSTK` the address where to jump to iterate the loop and compiles the jump.
+- Runtime: repeats the `WHILE` loop.
+
+### `OF`
+
+- Priority = 0.
+- Compile time: scans a word *w* and check if a variable with that name exists (if not an error is raised), the `=` word is scanned, raising an error if not following *w*.
+- Runtime: pops an index *i* and assigns to the *i*-th element of the stack *w* the value of the expression following `=`.
+
+### `OR`
+
+- Priority = 60.
+- Runtime: pops two numbers and pushes 0 if both numbers are 0, else pushes 1.
+
+### `POP`
+
+- Priority = 200.
+- Runtime: pops the address of a stack, pops an element from it and pushes it. Exits on error.
 
 
-    "LET", 0, compile_assignment, VSTORE,
+### `PRINT`
 
-    "NEG", 120, NEG, None,
+- Priority = 10.
+- Runtime: pops a number and prints it (it works also for strings and stacks).
 
-    "NEXT", 0, NEXT, None,
+### `PROC`
 
-    "NIL", 255, PUSH, None,
+- Priority = 0.
+- Compile time: scans a word *w* and creates a new definition (*w*, 10, `CALL`, *v*) being *v* the address of a stack that will contain the code compiled until the matching `END`.
 
-    "NOT", 80, NOT, None,
+### `PUSH`
 
-    "OD", 0, OD, None,
+- Priority = 20.
+- Runtime: pops an item, pops a stack, pushes the item on the stack.
 
-    "OF", 0, compile_assignment, ISTORE,
+### `RAND`
 
-    "OR", 60, OR, None,
+- Priority = 255.
+- Runtime: pushes a pseudo-random number between 0 (included) and 1 on the stack.
 
-    "POP", 200, SPOP, None,
+### `ROUND`
 
-    "PRINT", 10, PRINT, None,
+- Priority = 200.
+- Runtime: pops a number, pushes its nearest integer.
 
-    "PROC", 0, BEGIN, 10,
+### `STACK`
 
-    "PUSH", 20, SPUSH, None,
+- Priority = 0.
+- Compile time: scans a word *w* and creates a new empty stack variable definition (*w*, 0, `VPUSH`, *v*) being *v* the index in `_VSTK`of the new variable's value.
 
-    "RAND", 255, RAND, None,
+### `THEN`
 
-    "ROUND", 200, ROUND, None,
+- Priority = 0.
+- Compile time: matches a previous `IF`, compiles all words in the `_DSTK` with priorities >0, pushes on `_PSTK` the jump address to be written by `ELIF`, `ELSE` or `FI`, prepares a match for `ELIF`, `ELSE` or `FI`.
+- Runtime: skip the following code if the condition on the stack is zero
 
-    "STACK", 0, STACK, None,
+### `TO`
 
-    "THEN", 0, THEN, None,
+- Priority = 0.
+- Compile time: matches a previous `FOR`, compiles all words in the `_DSTK` with priorities >0, compiles the loop termination condition, pushes on `_PSTK` a jump address, the index of the loop variable and a match for `DO`.
+- Runtime: if the loop variable is greater or equal to the expression following `TO` then skip the loop, else perform it.
 
-    "TO", 0, TO, None,
+### `TOS`
 
-    "TOS", 200, STOS, None,
+- Priority = 200.
+- Runtime: pops a stack, pushes its topmost element without popping it.
 
-    "WHILE", 0, WHILE, None,
+### `WHILE`
 
-    "[", 0, open_par, "]",
+- Priority = 0.
+- Compile time: compiles all words in the `_DSTK` with priorities >0, pushes on `_PSTK` the initial address of the loop and a match for `DO`.
 
-    "\"", 0, STRCONST, None,
+### `[`
 
-    "\\", 0, COMMENT, None,
+- Priority = 0.
+- Compile time: pushes a fake word (0, "]", `NIL`) on the stack.
 
-    "\n", 0, NEWLINE, None,
+### `\`
 
-    "]", 0, CLOSEBRA, "]"
+- Priority = 0.
+- Compile time: scans and discards each character until a newline or the end of the file is found
+
+### `]`
+
+- Priority = 0.
+- Compile time: pops and compiles words from `_DSTK` to `_CSTK` until the fake word (0, "]", `NIL`) which is just removed. If no such fake word is found, an error is raised.
+- Runtime: pops from the stack an index *i* a stack variable *s* and pushes the *i*-th element of *s* on the stack.
+

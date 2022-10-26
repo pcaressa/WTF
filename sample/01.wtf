@@ -1,8 +1,8 @@
 \ 01.wtf
 
 $PRINT "I should print: 81, 5, 5, 11, 1.25, 0, 1, -16, 10"
-PRINT ((1 + 2) * 3)\
-        ** 2
+PRINT ((1 + 2) * 3\
+        )** 2
 PRINT 1 * (2 + 3)
 PRINT 1 * 2 + 3
 PRINT 1 + 2 * 3 + 4

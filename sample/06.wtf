@@ -1,0 +1,33 @@
+DEF x = 1
+
+PROC p1
+    DEF x = 2
+    PRINT x
+END
+
+PRINT x     \ Print 1
+p1          \ Print 2
+PRINT x     \ Print 1
+
+PROC swap01
+    DEF s = \ Parameter
+
+    PROC swap   \ swap(s i j)
+        DEF j = \ Parameter
+        DEF i = \ Parameter
+        DEF s = \ Parameter
+        DEF temp = s[i]
+        i OF s = s[j]
+        j OF s = temp
+    END
+    swap(s 0 1)
+END
+
+STACK s
+PUSH(s 0) PUSH(s 1) PUSH(s 2) PUSH(s 3)
+
+PRINT s
+
+swap01(s)
+
+PRINT s

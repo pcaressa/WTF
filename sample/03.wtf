@@ -1,4 +1,4 @@
-\ 03.wtf
+\ 03.wtf - Commands & Co
 
 CMD print1 PRINT 1 END
 
@@ -15,6 +15,6 @@ foo(x - 5)  \ shoud print -5, -4, ..., 9
 
 FUNC incr 1 + END
 
-PRINT incr (10 + 20)    \ should print 31
+PRINT incr (10 20 +)    \ should print 31
 
 print1  \ This shall be executed before any compiled code

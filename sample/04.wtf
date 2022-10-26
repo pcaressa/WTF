@@ -6,14 +6,14 @@ LET x = x + y
 LET y = x * y
 PRINT y
 
-$PRINT "Should print 10.0"
-LET x = 20
+\$PRINT "Should print 10.0"
+DEF x = 20
 IF x = 1 THEN
     PRINT 1
 ELIF x = 2 THEN
     PRINT 2
 ELIF x = 3 THEN
-    PRINT 2
+    PRINT 3
 ELIF x >= 0 THEN
     PRINT 10
 ELSE
@@ -24,14 +24,14 @@ $PRINT "Should print 20.0"
 PRINT (IF 1 <> 0 THEN 20 ELSE 30 FI)
 
 $PRINT "Should print 10.0, 9.0, ..., 0.0"
-LET x = 10
-WHILE x >= 0 DO
-    PRINT x
-    LET x = x - 1
-OD
+    DEF x = 10
+    WHILE x >= 0 DO
+        PRINT x
+        LET x = x - 1
+    OD
 
 $PRINT "Now play with a stack"
-NEW s
+STACK s
 PUSH(s 10)
 s PUSH 20
 PRINT s[0]

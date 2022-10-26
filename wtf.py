@@ -288,7 +288,7 @@ def COMMENT(v):
         _NLINE += 1
 def NEWLINE(v):
     global _NLINE
-    compile_words(0)
+    compile_words(1)
     _NLINE += 1
 
 def PRINT(v): print(POP())
@@ -374,7 +374,7 @@ def BEGIN(p):   # BEGIN word ... END
     push(_PSTK, BEGIN)  # END expects this
 def END(v):
     global _CSTK, _DICT
-    compile_words(0)    # to be sure anything before END is compiled
+    compile_words(1)    # to be sure anything before END is compiled
     error_on(pop(_PSTK) != BEGIN, "'END' without 'BEGIN'")
     compile(255, RET, 0)
     # deletes all definitions local to the ending one.
